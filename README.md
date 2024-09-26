@@ -111,5 +111,5 @@ João Renan S. Lopes
 
 
 # Agradecimentos   
-Agradeço à professora Polyana pelo incentivo ao desenvolvimento do projeto e pelo conhecimento passado.  
+Agradeço à professora Polyana pelo incentivo ao desenvolvimento do projeto e embasamento teórico em IA e ao Professor Isaac pelo conhecimento  algoritmico passado.  
 
