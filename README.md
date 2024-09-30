@@ -107,7 +107,7 @@ python main.py
 - **Esc**: Sai do jogo.
 
 # Autor  
-João Renan S. Lopes   
+João Renan S. Lopes, Carlos egger e João Severino
 
 
 # Agradecimentos   
