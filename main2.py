@@ -5,6 +5,8 @@ from OpenGL.GLU import *
 import random
 import math
 import time
+import tkinter as tk
+from tkinter import messagebox
 
 # Configurações do jogo
 TAMANHO_TABULEIRO = 3
@@ -20,6 +22,7 @@ AMARELO = (1, 1, 0)
 ROXO = (0.5, 0, 0.5)
 CIANO = (0, 1, 1)
 LARANJA = (1, 0.5, 0)
+CIANO_BRILHANTE = (0, 1, 1)
 
 # Elementos decorativos
 NUM_ESTRELAS = 500
@@ -158,10 +161,18 @@ class JogoDaVelha3D:
                 self.jogo_terminado = True
                 self.vencedor = -1
                 self.placar_ia += 1
+                mostrar_popup_ia_ganhou()
             elif self.tabuleiro_cheio():
                 self.jogo_terminado = True
             else:
                 self.jogador_atual = 1
+
+
+def mostrar_popup_jogador_ganhou():
+    root = tk.Tk()
+    root.withdraw()  # Esconde a janela principal
+    messagebox.showinfo("Fim de Jogo", "Parabéns, você ganhou!")
+    root.destroy()
 
 class Camera:
     def __init__(self):
@@ -327,12 +338,17 @@ def desenhar_esfera(x, y, z, cor):
 
     glPopMatrix()
 
+def mostrar_popup_ia_ganhou():
+    root = tk.Tk()
+    root.withdraw()  # Esconde a janela principal
+    messagebox.showinfo("Fim de Jogo", "A IA ganhou!")
+    root.destroy()
 def desenhar_x(x, y, z):
     tamanho = RAIO_ESFERA * 1.5
     glPushMatrix()
     glTranslatef(x * TAMANHO_CELULA - TAMANHO_CELULA, y * TAMANHO_CELULA - TAMANHO_CELULA,
                  z * TAMANHO_CELULA - TAMANHO_CELULA)
-    glColor3f(*AZUL)
+    glColor3f(*VERMELHO)
     glLineWidth(3.0)
     glBegin(GL_LINES)
     glVertex3f(-tamanho, -tamanho, -tamanho)
@@ -473,6 +489,7 @@ def main():
                             jogo.jogo_terminado = True
                             jogo.vencedor = 1
                             jogo.placar_jogador += 1
+                            mostrar_popup_jogador_ganhou()  # Adicionando o pop-up para o jogador aqui
                         elif jogo.tabuleiro_cheio():
                             jogo.jogo_terminado = True
                         else:
