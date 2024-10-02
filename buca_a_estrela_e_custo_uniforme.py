@@ -20,6 +20,9 @@ CINZA_ESCURO = (100, 100, 100)
 # Cell size
 TAMANHO_CELULA = 50
 
+# Sidebar width
+LARGURA_BARRA_LATERAL = 300
+
 # Define the maps for each level
 mapa1 = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -145,7 +148,7 @@ def busca_custo_uniforme(inicio, fim, grade):
 
     return None, None, custos
 
-def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, tamanho_celula, pontuacao_g=None, pontuacao_f=None, custos=None, custo_otimo=None):
+def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, tamanho_celula, pontuacao_g=None, pontuacao_f=None, custos=None):
     fonte = pygame.font.Font(None, 24)
     for i in range(len(grade)):
         for j in range(len(grade[0])):
@@ -182,13 +185,40 @@ def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, t
             if grade[no[0]][no[1]] == 1:
                 pygame.draw.rect(tela, AMARELO, (no[1]*tamanho_celula, no[0]*tamanho_celula, tamanho_celula, tamanho_celula))
 
-    if custo_otimo is not None:
-        texto_custo = f"Custo do caminho ótimo: {custo_otimo}"
-        texto_renderizado = fonte.render(texto_custo, True, PRETO)
-        tela.blit(texto_renderizado, (10, 10))
+class ScrollBar:
+    def __init__(self, x, y, width, height, content_height):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.content_height = content_height
+        self.scroll_position = 0
+        self.scroll_height = max(height * height / content_height, 20)
+        self.dragging = False
 
-def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mudar_algoritmo, finalizar, largura_tela):
-    pygame.draw.rect(tela, CINZA_CLARO, (largura_tela - 200, 0, 200, largura_tela))
+    def draw(self, surface):
+        pygame.draw.rect(surface, CINZA_ESCURO, self.rect)
+        scroll_rect = pygame.Rect(self.rect.x, self.rect.y + self.scroll_position,
+                                  self.rect.width, self.scroll_height)
+        pygame.draw.rect(surface, CINZA_CLARO, scroll_rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1 and self.rect.collidepoint(event.pos):
+                self.dragging = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:
+                self.dragging = False
+        elif event.type == pygame.MOUSEMOTION:
+            if self.dragging:
+                _, rel_y = event.rel
+                self.scroll_position = max(0, min(self.rect.height - self.scroll_height,
+                                                  self.scroll_position + rel_y))
+
+    @property
+    def progress(self):
+        return self.scroll_position / (self.rect.height - self.scroll_height)
+
+def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mudar_algoritmo, finalizar, largura_tela, search_history, scroll_bar):
+    sidebar_rect = pygame.Rect(largura_tela - LARGURA_BARRA_LATERAL, 0, LARGURA_BARRA_LATERAL, tela.get_height())
+    pygame.draw.rect(tela, CINZA_CLARO, sidebar_rect)
 
     instrucoes = [
         "Instruções:",
@@ -202,23 +232,64 @@ def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mu
     ]
     for i, instrucao in enumerate(instrucoes):
         texto_renderizado = fonte.render(instrucao, True, PRETO)
-        tela.blit(texto_renderizado, (largura_tela - 190, 20 + i*25))
+        tela.blit(texto_renderizado, (largura_tela - LARGURA_BARRA_LATERAL + 10, 20 + i*25))
+def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mudar_algoritmo, finalizar, largura_tela, search_history, scroll_bar):
+    sidebar_rect = pygame.Rect(largura_tela - LARGURA_BARRA_LATERAL, 0, LARGURA_BARRA_LATERAL, tela.get_height())
+    pygame.draw.rect(tela, CINZA_CLARO, sidebar_rect)
 
+    instrucoes = [
+        "Instruções:",
+        "1. Clique esquerdo:",
+        "   Definir início e fim.",
+        "2. Clique direito:",
+        "   Adicionar/remover paredes.",
+        "3. Espaço: Iniciar busca.",
+        f"Algoritmo: {algoritmo}",
+        f"Nível: {nivel}",
+    ]
+    for i, instrucao in enumerate(instrucoes):
+        texto_renderizado = fonte.render(instrucao, True, PRETO)
+        tela.blit(texto_renderizado, (largura_tela - LARGURA_BARRA_LATERAL + 10, 20 + i*25))
+
+    y_offset = 250
     pygame.draw.rect(tela, CINZA_ESCURO, reiniciar)
     texto_reiniciar = fonte.render("Reiniciar", True, BRANCO)
-    tela.blit(texto_reiniciar, (largura_tela - 170, reiniciar.y + 10))
+    tela.blit(texto_reiniciar, (largura_tela - LARGURA_BARRA_LATERAL + 10, y_offset))
 
+    y_offset += 50
     pygame.draw.rect(tela, CINZA_ESCURO, proximo)
     texto_proximo = fonte.render("Próximo Nível", True, BRANCO)
-    tela.blit(texto_proximo, (largura_tela - 180, proximo.y + 10))
+    tela.blit(texto_proximo, (largura_tela - LARGURA_BARRA_LATERAL + 10, y_offset))
 
+    y_offset += 50
     pygame.draw.rect(tela, CINZA_ESCURO, mudar_algoritmo)
     texto_mudar = fonte.render("Mudar Algoritmo", True, BRANCO)
-    tela.blit(texto_mudar, (largura_tela - 180, mudar_algoritmo.y + 10))
+    tela.blit(texto_mudar, (largura_tela - LARGURA_BARRA_LATERAL + 10, y_offset))
 
+    y_offset += 50
     pygame.draw.rect(tela, CINZA_ESCURO, finalizar)
     texto_finalizar = fonte.render("Finalizar", True, BRANCO)
-    tela.blit(texto_finalizar, (largura_tela - 170, finalizar.y + 10))
+    tela.blit(texto_finalizar, (largura_tela - LARGURA_BARRA_LATERAL + 10, y_offset))
+
+    y_offset += 70
+    texto_historico = fonte.render("Histórico de Buscas:", True, PRETO)
+    tela.blit(texto_historico, (largura_tela - LARGURA_BARRA_LATERAL + 10, y_offset))
+
+    y_offset += 30
+    clip_rect = pygame.Rect(largura_tela - LARGURA_BARRA_LATERAL, y_offset, LARGURA_BARRA_LATERAL - 20, tela.get_height() - y_offset)
+    tela.set_clip(clip_rect)
+
+    for idx, (alg, cost) in enumerate(search_history):
+        if cost is not None:
+            texto = f"{idx+1}. {alg}: Custo {cost}"
+        else:
+            texto = f"{idx+1}. {alg}: Sem caminho"
+        texto_renderizado = fonte.render(texto, True, PRETO)
+        tela.blit(texto_renderizado, (largura_tela - LARGURA_BARRA_LATERAL + 10, y_offset + idx * 25 - scroll_bar.progress * (len(search_history) * 25)))
+
+    tela.set_clip(None)
+
+    scroll_bar.draw(tela)
 
 def selecionar_algoritmo():
     fonte_titulo = pygame.font.Font(None, 48)
@@ -258,8 +329,8 @@ def main():
         largura_grade = TAMANHO_GRADE_X * TAMANHO_CELULA
         altura_grade = TAMANHO_GRADE_Y * TAMANHO_CELULA
 
-        LARGURA = largura_grade + 200
-        ALTURA = max(altura_grade, 600)
+        LARGURA = largura_grade + LARGURA_BARRA_LATERAL
+        ALTURA = max(altura_grade, 700)
 
         global tela
         tela = pygame.display.set_mode((LARGURA, ALTURA))
@@ -281,10 +352,12 @@ def main():
         pontuacao_f = {}
         custos = {}
 
-        reiniciar_rect = pygame.Rect(LARGURA - 180, 280, 160, 40)
-        proximo_rect = pygame.Rect(LARGURA - 180, 330, 160, 40)
-        mudar_algoritmo_rect = pygame.Rect(LARGURA - 180, 380, 160, 40)
-        finalizar_rect = pygame.Rect(LARGURA - 180, 430, 160, 40)
+        reiniciar_rect = pygame.Rect(LARGURA - LARGURA_BARRA_LATERAL + 10, 250, LARGURA_BARRA_LATERAL - 20, 40)
+        proximo_rect = pygame.Rect(LARGURA - LARGURA_BARRA_LATERAL + 10, 300, LARGURA_BARRA_LATERAL - 20, 40)
+        mudar_algoritmo_rect = pygame.Rect(LARGURA - LARGURA_BARRA_LATERAL + 10, 350, LARGURA_BARRA_LATERAL - 20, 40)
+        finalizar_rect = pygame.Rect(LARGURA - LARGURA_BARRA_LATERAL + 10, 400, LARGURA_BARRA_LATERAL - 20, 40)
+
+        scroll_bar = ScrollBar(LARGURA - 20, 450, 10, ALTURA - 450, 1000)
 
         custo_otimo = None
         level_finished = False
@@ -295,6 +368,7 @@ def main():
                     rodando = False
                     pygame.quit()
                     sys.exit()
+                scroll_bar.handle_event(evento)
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     x, y = pygame.mouse.get_pos()
                     grade_x, grade_y = y // TAMANHO_CELULA, x // TAMANHO_CELULA
@@ -316,8 +390,26 @@ def main():
                         rodando = False
                     elif mudar_algoritmo_rect.collidepoint(x, y):
                         algoritmo = selecionar_algoritmo()
+                        gerador_busca = None
+                        caminho = None
+                        atual = None
+                        visitados = set()
+                        borda = []
+                        pontuacao_g = {}
+                        pontuacao_f = {}
+                        custos = {}
+                        custo_otimo = None
+                        level_finished = False
                     elif finalizar_rect.collidepoint(x, y):
                         level_finished = True
+                        if gerador_busca:
+                            while True:
+                                try:
+                                    next(gerador_busca)
+                                except StopIteration as e:
+                                    caminho, custo_otimo, _ = e.value if e.value else (None, None, None)
+                                    break
+                            gerador_busca = None
                     elif 0 <= grade_x < TAMANHO_GRADE_Y and 0 <= grade_y < TAMANHO_GRADE_X:
                         if evento.button == 1:  # Left mouse button
                             if not inicio:
@@ -342,6 +434,7 @@ def main():
                         pontuacao_f = {}
                         custos = {}
                         custo_otimo = None
+                        level_finished = False
 
             tela.fill(BRANCO)
 
@@ -358,22 +451,19 @@ def main():
                     gerador_busca = None
 
                     if caminho:
-                        print(f"Algoritmo: {algoritmo}, Custo da busca: {custo_otimo}")
                         search_history.append((algoritmo, custo_otimo))
                     else:
-                        print(f"Algoritmo: {algoritmo}, Não foi encontrado caminho.")
                         search_history.append((algoritmo, None))
 
             desenhar_grade(tela, grade, inicio, fim, caminho, atual if gerador_busca else None,
-                           visitados if gerador_busca else set(), borda if gerador_busca else [],
+                           visitados, borda,
                            TAMANHO_CELULA,
                            pontuacao_g=pontuacao_g if algoritmo == "A*" else None,
                            pontuacao_f=pontuacao_f if algoritmo == "A*" else None,
-                           custos=custos if algoritmo == "Custo Uniforme" else None,
-                           custo_otimo=custo_otimo)
+                           custos=custos if algoritmo == "Custo Uniforme" else None)
 
             desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar_rect, proximo_rect, mudar_algoritmo_rect,
-                                   finalizar_rect, LARGURA)
+                                   finalizar_rect, LARGURA, search_history, scroll_bar)
 
             pygame.display.flip()
             relogio.tick(10)
