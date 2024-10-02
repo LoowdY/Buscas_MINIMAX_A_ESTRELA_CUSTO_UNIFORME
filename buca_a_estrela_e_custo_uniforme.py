@@ -35,10 +35,6 @@ mapa1 = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
 
-
-
-
-
 mapa2 = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
@@ -52,9 +48,6 @@ mapa2 = [
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
-
-
-
 
 mapa3 = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -70,12 +63,9 @@ mapa3 = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
 
-
-# Heuristic function for A* (Manhattan distance)
 def heuristica(a, b):
     return abs(b[0] - a[0]) + abs(b[1] - a[1])
 
-# A* Search Algorithm
 def busca_a_estrela(inicio, fim, grade):
     vizinhos = [(0,1), (0,-1), (1,0), (-1,0)]
     conjunto_fechado = set()
@@ -89,25 +79,19 @@ def busca_a_estrela(inicio, fim, grade):
         atual = heapq.heappop(conjunto_aberto)[1]
         conjunto_fechado.add(atual)
 
-        # Generate the frontier (nodes in open set)
         borda = [item[1] for item in conjunto_aberto]
-
-        # Print visited nodes and frontier with costs and evaluation function
-        print(f"\nVisitado: {atual}, g={pontuacao_g[atual]}, f={pontuacao_f[atual]}")
-        print("Borda:")
-        for no in borda:
-            print(f"  {no}, g={pontuacao_g[no]}, f={pontuacao_f[no]}")
 
         yield atual, conjunto_fechado, veio_de, pontuacao_g.copy(), pontuacao_f.copy()
 
         if atual == fim:
             caminho = []
+            custo_total = pontuacao_g[atual]
             while atual in veio_de:
                 caminho.append(atual)
                 atual = veio_de[atual]
             caminho.append(inicio)
             caminho.reverse()
-            return caminho
+            return caminho, custo_total, pontuacao_g
 
         for i, j in vizinhos:
             vizinho = atual[0] + i, atual[1] + j
@@ -128,9 +112,8 @@ def busca_a_estrela(inicio, fim, grade):
                 pontuacao_f[vizinho] = pontuacao_g[vizinho] + heuristica(vizinho, fim)
                 heapq.heappush(conjunto_aberto, (pontuacao_f[vizinho], vizinho))
 
-    return None
+    return None, None, pontuacao_g
 
-# Uniform Cost Search Algorithm
 def busca_custo_uniforme(inicio, fim, grade):
     vizinhos = [(0,1), (0,-1), (1,0), (-1,0)]
     visitados = set()
@@ -144,19 +127,12 @@ def busca_custo_uniforme(inicio, fim, grade):
 
         visitados.add(atual)
 
-        # Generate the frontier (nodes in queue)
         borda = [item[1] for item in fila]
-
-        # Print visited nodes and frontier with costs
-        print(f"\nVisitado: {atual}, custo={custos[atual]}")
-        print("Borda:")
-        for no in borda:
-            print(f"  {no}, custo={custos[no]}")
 
         yield atual, visitados.copy(), dict(zip(caminho, caminho[1:] + [atual])), custos.copy()
 
         if atual == fim:
-            return caminho + [atual]
+            return caminho + [atual], custo, custos
 
         for i, j in vizinhos:
             proximo_no = atual[0] + i, atual[1] + j
@@ -167,10 +143,9 @@ def busca_custo_uniforme(inicio, fim, grade):
                         custos[proximo_no] = novo_custo
                         heapq.heappush(fila, (novo_custo, proximo_no, caminho + [atual]))
 
-    return None
+    return None, None, custos
 
-# Function to draw the grid and show node details
-def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, tamanho_celula, pontuacao_g=None, pontuacao_f=None, custos=None):
+def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, tamanho_celula, pontuacao_g=None, pontuacao_f=None, custos=None, custo_otimo=None):
     fonte = pygame.font.Font(None, 24)
     for i in range(len(grade)):
         for j in range(len(grade[0])):
@@ -186,21 +161,18 @@ def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, t
     for no in visitados:
         if no != inicio and no != fim and grade[no[0]][no[1]] == 1:
             pygame.draw.rect(tela, LARANJA, (no[1]*tamanho_celula, no[0]*tamanho_celula, tamanho_celula, tamanho_celula))
+            if pontuacao_g:
+                texto = f"{pontuacao_g[no]}"
+                texto_renderizado = fonte.render(texto, True, PRETO)
+                tela.blit(texto_renderizado, (no[1]*tamanho_celula + 5, no[0]*tamanho_celula + 5))
+            elif custos:
+                texto = f"{custos[no]}"
+                texto_renderizado = fonte.render(texto, True, PRETO)
+                tela.blit(texto_renderizado, (no[1]*tamanho_celula + 5, no[0]*tamanho_celula + 5))
 
     for no in borda:
         if no != inicio and no != fim and grade[no[0]][no[1]] == 1:
             pygame.draw.rect(tela, ROXO, (no[1]*tamanho_celula, no[0]*tamanho_celula, tamanho_celula, tamanho_celula))
-
-        # Draw cost and evaluation function
-        if pontuacao_g and pontuacao_f and no in pontuacao_g:
-            texto = f"g={pontuacao_g[no]}, f={pontuacao_f[no]}"
-            texto_renderizado = fonte.render(texto, True, PRETO)
-            tela.blit(texto_renderizado, (no[1]*tamanho_celula + 5, no[0]*tamanho_celula + 5))
-
-        elif custos and no in custos:
-            texto = f"custo={custos[no]}"
-            texto_renderizado = fonte.render(texto, True, PRETO)
-            tela.blit(texto_renderizado, (no[1]*tamanho_celula + 5, no[0]*tamanho_celula + 5))
 
     if atual and grade[atual[0]][atual[1]] == 1:
         pygame.draw.rect(tela, AZUL, (atual[1]*tamanho_celula, atual[0]*tamanho_celula, tamanho_celula, tamanho_celula))
@@ -210,12 +182,14 @@ def desenhar_grade(tela, grade, inicio, fim, caminho, atual, visitados, borda, t
             if grade[no[0]][no[1]] == 1:
                 pygame.draw.rect(tela, AMARELO, (no[1]*tamanho_celula, no[0]*tamanho_celula, tamanho_celula, tamanho_celula))
 
-# Function to draw the sidebar with instructions and buttons
-def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mudar_algoritmo, largura_tela):
-    # Sidebar background
+    if custo_otimo is not None:
+        texto_custo = f"Custo do caminho ótimo: {custo_otimo}"
+        texto_renderizado = fonte.render(texto_custo, True, PRETO)
+        tela.blit(texto_renderizado, (10, 10))
+
+def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mudar_algoritmo, finalizar, largura_tela):
     pygame.draw.rect(tela, CINZA_CLARO, (largura_tela - 200, 0, 200, largura_tela))
 
-    # Instructions
     instrucoes = [
         "Instruções:",
         "1. Clique esquerdo:",
@@ -230,22 +204,22 @@ def desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar, proximo, mu
         texto_renderizado = fonte.render(instrucao, True, PRETO)
         tela.blit(texto_renderizado, (largura_tela - 190, 20 + i*25))
 
-    # Restart search button
     pygame.draw.rect(tela, CINZA_ESCURO, reiniciar)
-    texto_reiniciar = fonte.render("Reiniciar Busca", True, BRANCO)
-    tela.blit(texto_reiniciar, (largura_tela - 180, reiniciar.y + 10))
+    texto_reiniciar = fonte.render("Reiniciar", True, BRANCO)
+    tela.blit(texto_reiniciar, (largura_tela - 170, reiniciar.y + 10))
 
-    # Next level button
     pygame.draw.rect(tela, CINZA_ESCURO, proximo)
     texto_proximo = fonte.render("Próximo Nível", True, BRANCO)
     tela.blit(texto_proximo, (largura_tela - 180, proximo.y + 10))
 
-    # Change algorithm button
     pygame.draw.rect(tela, CINZA_ESCURO, mudar_algoritmo)
     texto_mudar = fonte.render("Mudar Algoritmo", True, BRANCO)
     tela.blit(texto_mudar, (largura_tela - 180, mudar_algoritmo.y + 10))
 
-# Function to select algorithm
+    pygame.draw.rect(tela, CINZA_ESCURO, finalizar)
+    texto_finalizar = fonte.render("Finalizar", True, BRANCO)
+    tela.blit(texto_finalizar, (largura_tela - 170, finalizar.y + 10))
+
 def selecionar_algoritmo():
     fonte_titulo = pygame.font.Font(None, 48)
     fonte_opcao = pygame.font.Font(None, 36)
@@ -276,21 +250,17 @@ def main():
     mapas = [mapa1, mapa2, mapa3]
     fonte = pygame.font.Font(None, 24)
 
-    # Initialize search history list
     search_history = []
 
     for nivel, grade in enumerate(mapas, start=1):
-        # Adjust grid size based on the map
         TAMANHO_GRADE_X = len(grade[0])
         TAMANHO_GRADE_Y = len(grade)
         largura_grade = TAMANHO_GRADE_X * TAMANHO_CELULA
         altura_grade = TAMANHO_GRADE_Y * TAMANHO_CELULA
 
-        # Adjust screen size
-        LARGURA = largura_grade + 200  # 200 pixels for sidebar
-        ALTURA = max(altura_grade, 600)  # Ensure a minimum height
+        LARGURA = largura_grade + 200
+        ALTURA = max(altura_grade, 600)
 
-        # Create the screen
         global tela
         tela = pygame.display.set_mode((LARGURA, ALTURA))
         pygame.display.set_caption("Jogo de Busca de Caminhos Interativo")
@@ -307,15 +277,17 @@ def main():
         visitados = set()
         borda = []
 
-        # Initialize variables
         pontuacao_g = {}
         pontuacao_f = {}
         custos = {}
 
-        # Define button positions
-        reiniciar_rect = pygame.Rect(LARGURA - 180, 400, 160, 40)
-        proximo_rect = pygame.Rect(LARGURA - 180, 460, 160, 40)
-        mudar_algoritmo_rect = pygame.Rect(LARGURA - 180, 520, 160, 40)
+        reiniciar_rect = pygame.Rect(LARGURA - 180, 280, 160, 40)
+        proximo_rect = pygame.Rect(LARGURA - 180, 330, 160, 40)
+        mudar_algoritmo_rect = pygame.Rect(LARGURA - 180, 380, 160, 40)
+        finalizar_rect = pygame.Rect(LARGURA - 180, 430, 160, 40)
+
+        custo_otimo = None
+        level_finished = False
 
         while rodando:
             for evento in pygame.event.get():
@@ -327,9 +299,10 @@ def main():
                     x, y = pygame.mouse.get_pos()
                     grade_x, grade_y = y // TAMANHO_CELULA, x // TAMANHO_CELULA
 
-                    # Check if click was on any button
                     if reiniciar_rect.collidepoint(x, y):
-                        gerador_busca = None  # Restart search
+                        inicio = None
+                        fim = None
+                        gerador_busca = None
                         caminho = None
                         atual = None
                         visitados = set()
@@ -337,13 +310,15 @@ def main():
                         pontuacao_g = {}
                         pontuacao_f = {}
                         custos = {}
+                        custo_otimo = None
+                        level_finished = False
                     elif proximo_rect.collidepoint(x, y):
-                        rodando = False  # Move to next level
+                        rodando = False
                     elif mudar_algoritmo_rect.collidepoint(x, y):
-                        algoritmo = selecionar_algoritmo()  # Change algorithm during the level
-
-                    # If click was inside the grid
-                    if 0 <= grade_x < TAMANHO_GRADE_Y and 0 <= grade_y < TAMANHO_GRADE_X and not reiniciar_rect.collidepoint(x, y):
+                        algoritmo = selecionar_algoritmo()
+                    elif finalizar_rect.collidepoint(x, y):
+                        level_finished = True
+                    elif 0 <= grade_x < TAMANHO_GRADE_Y and 0 <= grade_y < TAMANHO_GRADE_X:
                         if evento.button == 1:  # Left mouse button
                             if not inicio:
                                 inicio = (grade_x, grade_y)
@@ -352,6 +327,7 @@ def main():
                         elif evento.button == 3:  # Right mouse button
                             if (grade_x, grade_y) != inicio and (grade_x, grade_y) != fim:
                                 grade[grade_x][grade_y] = 1 - grade[grade_x][grade_y]  # Toggle cell state
+
                 if evento.type == pygame.KEYDOWN:
                     if evento.key == pygame.K_SPACE and inicio and fim:
                         if algoritmo == "A*":
@@ -365,10 +341,11 @@ def main():
                         pontuacao_g = {}
                         pontuacao_f = {}
                         custos = {}
+                        custo_otimo = None
 
             tela.fill(BRANCO)
 
-            if gerador_busca:
+            if gerador_busca and not level_finished:
                 try:
                     if algoritmo == "A*":
                         atual, visitados, veio_de, pontuacao_g, pontuacao_f = next(gerador_busca)
@@ -377,14 +354,12 @@ def main():
                         atual, visitados, veio_de, custos = next(gerador_busca)
                         borda = [no for no in custos if no not in visitados and no != atual]
                 except StopIteration as e:
-                    caminho = e.value if e.value else []
+                    caminho, custo_otimo, _ = e.value if e.value else (None, None, None)
                     gerador_busca = None
 
-                    # Compute cost and record search
                     if caminho:
-                        cost = len(caminho) - 1
-                        print(f"Algoritmo: {algoritmo}, Custo da busca: {cost}")
-                        search_history.append((algoritmo, cost))
+                        print(f"Algoritmo: {algoritmo}, Custo da busca: {custo_otimo}")
+                        search_history.append((algoritmo, custo_otimo))
                     else:
                         print(f"Algoritmo: {algoritmo}, Não foi encontrado caminho.")
                         search_history.append((algoritmo, None))
@@ -394,15 +369,15 @@ def main():
                            TAMANHO_CELULA,
                            pontuacao_g=pontuacao_g if algoritmo == "A*" else None,
                            pontuacao_f=pontuacao_f if algoritmo == "A*" else None,
-                           custos=custos if algoritmo == "Custo Uniforme" else None)
+                           custos=custos if algoritmo == "Custo Uniforme" else None,
+                           custo_otimo=custo_otimo)
 
-            # Draw the sidebar
-            desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar_rect, proximo_rect, mudar_algoritmo_rect, LARGURA)
+            desenhar_barra_lateral(tela, fonte, algoritmo, nivel, reiniciar_rect, proximo_rect, mudar_algoritmo_rect,
+                                   finalizar_rect, LARGURA)
 
             pygame.display.flip()
             relogio.tick(10)
 
-    # After game loop, print search history
     print("\nHistórico de Buscas:")
     for idx, (alg, cost) in enumerate(search_history, 1):
         if cost is not None:
